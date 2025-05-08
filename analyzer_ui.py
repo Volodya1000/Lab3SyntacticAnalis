@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox
 import window_utils as wu
 from docx import Document
 import sys
-
+import time
 from text_units import TextSegment
 from token_model import LexicalToken
 import lang_config as lc
@@ -46,6 +46,11 @@ class TextAnalyzerApp:
         analysis_menu.add_command(label="Обработать документ", command=self.process_full_text)
         analysis_menu.add_command(label="Анализ выделения", command=self.process_selected_text)
         menu_bar.add_cascade(label="Действия", menu=analysis_menu)
+
+        help_menu = tk.Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label="Как пользоваться", command=self.show_help)
+        menu_bar.add_cascade(label="Помощь", menu=help_menu)
+
 
         self.root.config(menu=menu_bar)
 
@@ -103,7 +108,11 @@ class TextAnalyzerApp:
             return
         self.analyze_content(content)
 
+  
+
     def analyze_content(self, text):
+        start_time = time.time()  # Засекаем время начала обработки
+        
         doc = Doc(text)
         doc.segment(self.segmenter)
         doc.tag_morph(self.tagger)
@@ -136,6 +145,15 @@ class TextAnalyzerApp:
         self.analysis_output = "\n".join(report)
         self.result_panel.delete(1.0, tk.END)
         self.result_panel.insert(tk.END, self.analysis_output)
+        
+        end_time = time.time()  # Засекаем время окончания обработки
+        elapsed_time = end_time - start_time  # Вычисляем затраченное время
+        
+        # Показываем сообщение с временем обработки
+        messagebox.showinfo(
+            "Анализ завершен",
+            f"Текст успешно обработан.\nВремя обработки: {elapsed_time:.2f} секунд"
+        )
 
     def save_results(self):
         path = filedialog.asksaveasfilename(
@@ -173,3 +191,42 @@ class TextAnalyzerApp:
         except Exception as e:
             messagebox.showerror("Ошибка экспорта", 
                 f"Не удалось сохранить файл:\n{str(e)}")
+            
+    def show_help(self):
+        help_text = """DocAnalyzer 1.4 - Руководство пользователя
+
+    1. Выбор рабочей папки:
+    - Используйте меню 'Файл > Выбрать рабочую папку'
+    - Программа будет отображать все .docx файлы в выбранной папке
+
+    2. Открытие документа:
+    - Дважды кликните на файле в списке слева
+    - Текст документа появится в центральной панели
+
+    3. Анализ текста:
+    - 'Обработать документ' - анализирует весь текст
+    - 'Анализ выделения' - анализирует только выделенный фрагмент
+
+    4. Результаты:
+    - Результаты анализа отображаются в правой панели
+    - Для каждого предложения выводится список токенов с:
+        * Оригинальной формой
+        * Нормальной формой (леммой)
+        * Частью речи
+        * Синтаксической ролью
+
+    5. Экспорт:
+    - Результаты можно сохранить в .docx через меню 'Файл > Экспорт результатов'
+    """
+        help_window = tk.Toplevel(self.root)
+        help_window.title("Справка")
+        help_window.geometry("600x400")
+        wu.align_window_center(help_window, 600, 400)
+        
+        text_widget = tk.Text(help_window, wrap=tk.WORD, padx=10, pady=10)
+        text_widget.insert(tk.END, help_text)
+        text_widget.config(state=tk.DISABLED)
+        text_widget.pack(fill=tk.BOTH, expand=True)
+        
+        close_button = tk.Button(help_window, text="Закрыть", command=help_window.destroy)
+        close_button.pack(pady=5)
